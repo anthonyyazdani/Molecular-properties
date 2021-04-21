@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -26,6 +27,7 @@ def load_data(data, properties):
 
     return X_train, X_test, y_train, y_test
 
+
 def get_smiles_encodings(file_path):
     """
     Returns smiles, alphabet and length of largest molecule in SMILES given a file containing SMILES molecules.
@@ -45,7 +47,6 @@ def get_smiles_encodings(file_path):
     smiles_alphabet.append(' ')  # for padding
 
     largest_smiles_len = len(max(smiles_list, key=len))
-
 
     return smiles_list, smiles_alphabet, largest_smiles_len
 
@@ -69,5 +70,3 @@ def smile_to_hot(smile, largest_smile_len, alphabet):
         letter[value] = 1
         onehot_encoded.append(letter)
     return integer_encoded, np.array(onehot_encoded)
-
-

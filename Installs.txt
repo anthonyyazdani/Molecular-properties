@@ -1,0 +1,13 @@
+# PyTorch
+
+pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html --user
+pip install torchtext==0.6.0 --user
+pip install -U pip setuptools wheel --user
+pip install -U spacy[cuda110]==2.3.5 --user
+python -m spacy download en_core_web_sm --user
+python -m spacy download en --user
+
+# nbextensions
+
+conda install -c conda-forge jupyter_contrib_nbextensions
+jupyter contrib nbextension install --sys-prefix
