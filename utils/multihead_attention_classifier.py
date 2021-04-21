@@ -45,9 +45,9 @@ class MultiHeadScaledDotProductAttention(nn.Module):
         D = embeddings.shape[1]  # Length
 
         # Split the embeddings for all heads so that the attention is paid to different pieces of the embeddings.
-        Value = embeddings.reshape(N, D, self.heads, self.head_dim)
-        Key = embeddings.reshape(N, D, self.heads, self.head_dim)
-        Query = embeddings.reshape(N, D, self.heads, self.head_dim)
+        Value = self.V(embeddings.reshape(N, D, self.heads, self.head_dim))
+        Key = self.K(embeddings.reshape(N, D, self.heads, self.head_dim))
+        Query = self.Q(embeddings.reshape(N, D, self.heads, self.head_dim))
 
         # Query & Key multiplication.
         score = torch.einsum("nqhd,nkhd->nhqk", [Query, Key])
@@ -170,7 +170,7 @@ class Encoder(nn.Module):
                     embedding_dim=embedding_dim,
                     heads=heads,
                     dropout=dropout,
-                    augmentation_factor=augmentation_factor)
+                    augmentation_factor=augmentation_factor) for _ in range(num_layers)
             ]
 
         )
@@ -258,8 +258,7 @@ class MultiheadAttentionClassifier(nn.Module):
 
     def get_pad_mask(self, mol):
 
-        mask = (mol != self.pad_idx).unsqueeze(
-            1).unsqueeze(2)  # Shape: (N, 1, 1, D)
+        mask = (mol != self.pad_idx).unsqueeze(1).unsqueeze(2)  # Shape: (N, 1, 1, D)
 
         return mask.to(self.device)
 
@@ -274,8 +273,7 @@ class MultiheadAttentionClassifier(nn.Module):
 
         # leaky relu MLP.
         linear_combinations1 = nn.functional.leaky_relu(self.linear1(features))
-        linear_combinations2 = nn.functional.leaky_relu(
-            self.linear2(linear_combinations1))
+        linear_combinations2 = nn.functional.leaky_relu(self.linear2(linear_combinations1))
         linear_combinations3 = self.linear3(linear_combinations2)
 
         return linear_combinations3
