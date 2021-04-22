@@ -28,12 +28,15 @@ class MultiHeadScaledDotProductAttention(nn.Module):
         assert embedding_dim % heads == 0
 
         # Value matrix.
-        self.V = nn.Linear(self.head_dim, self.head_dim, bias=False)
+        self.V = nn.Linear(self.embedding_dim, self.embedding_dim, bias=True)
         # Key matrix.
-        self.K = nn.Linear(self.head_dim, self.head_dim, bias=False)
+        self.K = nn.Linear(self.embedding_dim, self.embedding_dim, bias=True)
         # Query matrix.
-        self.Q = nn.Linear(self.head_dim, self.head_dim, bias=False)
-
+        self.Q = nn.Linear(self.embedding_dim, self.embedding_dim, bias=True)
+        
+        # Normalization.
+        self.LayerNormalization = nn.LayerNorm(self.embedding_dim)
+        
         # After concatenatation we do the following
         self.linear1 = nn.Linear(self.head_dim * self.heads, self.embedding_dim)
 
@@ -44,9 +47,9 @@ class MultiHeadScaledDotProductAttention(nn.Module):
         D = embeddings.shape[1]  # Length
 
         # Split the embeddings for all heads so that the attention is paid to different pieces of the embeddings.
-        Value = self.V(embeddings.reshape(N, D, self.heads, self.head_dim))
-        Key = self.K(embeddings.reshape(N, D, self.heads, self.head_dim))
-        Query = self.Q(embeddings.reshape(N, D, self.heads, self.head_dim))
+        Value = self.V(embeddings).reshape(N, D, self.heads, self.head_dim)
+        Key = self.K(embeddings).reshape(N, D, self.heads, self.head_dim)
+        Query = self.Q(embeddings).reshape(N, D, self.heads, self.head_dim)
 
         # Query & Key multiplication.
         score = torch.einsum("nqhd,nkhd->nhqk", [Query, Key])
@@ -62,9 +65,9 @@ class MultiHeadScaledDotProductAttention(nn.Module):
 
         # attention & Value multiplication + back to the original shape.
         full_attention = torch.einsum("nhql,nlhd->nqhd", [attention, Value]).reshape(N, D, self.head_dim * self.heads)
-
+        
         # Dence layer.
-        output = self.linear1(full_attention)
+        output = self.linear1(self.LayerNormalization(full_attention))
 
         return output
 

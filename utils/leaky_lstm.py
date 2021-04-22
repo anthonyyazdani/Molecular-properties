@@ -164,7 +164,7 @@ def train(model,
           criterion,
           accuracy_function=None,
           save=False,
-          saving_path="_.bin"):
+          saving_path="_.pt"):
     """
     Function to train varying topology RNN for <n_epoch> epoch.
 
@@ -200,16 +200,14 @@ def train(model,
         if save:
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
-                torch.save(model.state_dict(), saving_path)
+                torch.save(model, saving_path)
 
         if accuracy_function is not None:
 
             # Quick summary.
             print(f"\tNo. epoch: {epoch+1}/{n_epoch}                  ")
-            print(
-                f'\t   Train Loss: {round(train_loss, 3)} | Train Acc: {round(train_acc, 3)}%')
-            print(
-                f'\t    Val. Loss: {round(valid_loss, 3)} |  Val. Acc: {round(valid_acc, 3)}%')
+            print(f'\t   Train Loss: {round(train_loss, 3)} | Train Acc: {round(train_acc, 3)}%')
+            print(f'\t    Val. Loss: {round(valid_loss, 3)} |  Val. Acc: {round(valid_acc, 3)}%')
             print("\n")
 
         else:
@@ -262,10 +260,8 @@ class leaky_lstm(nn.Module):
         # Adding MLP on top of the non-linear transformations.
         bidirectional_factor = (2 if bidirectional else 1)
         self.dropout = nn.Dropout(dropout)
-        self.linear1 = nn.Linear(
-            hidden_size*bidirectional_factor, hidden_size*bidirectional_factor)
-        self.linear2 = nn.Linear(
-            hidden_size*bidirectional_factor, hidden_size*bidirectional_factor)
+        self.linear1 = nn.Linear(hidden_size*bidirectional_factor, hidden_size*bidirectional_factor)
+        self.linear2 = nn.Linear(hidden_size*bidirectional_factor, hidden_size*bidirectional_factor)
         self.linear3 = nn.Linear(hidden_size*bidirectional_factor, n_classes)
 
     def forward(self, word_indices, lengths):
@@ -274,19 +270,16 @@ class leaky_lstm(nn.Module):
         embedded = self.embedding(word_indices)
 
         # Packed sequence to implement dynamic/varying topology LSTM.
-        packed_embedded = nn.utils.rnn.pack_padded_sequence(
-            embedded, lengths, batch_first=True)
+        packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, lengths, batch_first=True)
 
         # Implicit recurrence.
         _, (hidden, cell_state) = self.lstm(packed_embedded)
 
         # Leaky relu MLP on concatenated hidden states.
-        hidden = (torch.cat(
-            (hidden[-2, :, :], hidden[-1, :, :]), dim=1) if self.bidirectional else hidden)
+        hidden = (torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1) if self.bidirectional else hidden)
         hidden = self.dropout(hidden)
         linear_combinations1 = nn.functional.leaky_relu(self.linear1(hidden))
-        linear_combinations2 = nn.functional.leaky_relu(
-            self.linear2(linear_combinations1))
+        linear_combinations2 = nn.functional.leaky_relu(self.linear2(linear_combinations1))
         linear_combinations3 = self.linear3(linear_combinations2)
 
         return linear_combinations3
